@@ -24,40 +24,42 @@ def main():
     memory = ReplayBuffer()
     #if os.listdir(bf_PATH):
         #memory = memory.load()
-
+    finish_num = 0
     learning_rate = 0.01
     optimizer = optim.Adam(q.parameters(), lr=learning_rate)
 
-    for ep in range(len(sim.files)*10):
+    for ep in range(len(sim.files)*5):
         #PATH = "state_dict_model_13_"+str(ep)+".pt"
         epi = ep%39999
         s = sim.reset(ep)
-        epsilon = max(0.01, 0.99 - (ep/350000))
-        if ep % 200000 == 0:
+        epsilon = max(0.01, 1 - (ep/150000))
+        if ep % 100000 == 0:
             learning_rate /= 10 # 0.001 0.0001 0.00001
         done = False
 
 # 첫번째 액션을 0 으로 고정
-        s, a, r, cr, s_prime, done, gr = sim.step(0)
+        s, a, r, cr, s_prime, done, gr, am = sim.step(0)
         memory.put((s, a, r, cr, s_prime, done))
         s = s_prime
 
         while not done:
             for i in range(10):
-                action = q.sample_action(s.float(), epsilon, a, gr)
-                s, a, r, cr, s_prime, done, gr = sim.step(action)
+                action = q.sample_action(s.float(), epsilon, am)
+                s, a, r, cr, s_prime, done, gr, am = sim.step(action)
                 done_mask = 0.0 if done else 1.0
                 memory.put((s, a, r, cr, s_prime, done_mask))
                 s = s_prime
-
+                if gr == 'finish':
+                    finish_num += 1
                 if done:
                     print(sim.actions)
-                    print('episode {}, epsilon {}, learning rate {}'.format(ep,epsilon,learning_rate))
-                    print('lenth:', len(sim.actions), 'cr : ', cr)
+                    print('episode {}, epsilon {}, learning_rate {}'.format(ep,epsilon,learning_rate))
+                    print('lenth:', len(sim.actions), 'cr : ', cr, 'Finish num :', finish_num)
                     print('===========================================================================')
+                    #input()
                     break
 
-        if memory.size()>40000:
+        if memory.size()>30000:
             loss = train(q, q_target, memory, optimizer)
             #input()
             running_loss += loss
@@ -70,14 +72,13 @@ def main():
         #if ep % 39999 == 0:
             #torch.save(q.state_dict(), PATH)
     
-    PATH = "state_dict_model_13.pt"
+    PATH = "state_dict_model_16.pt"
     torch.save(q.state_dict(), PATH)                 
                     
 if __name__ == '__main__':
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print('tensor in', device)
     input()
-    writer = SummaryWriter('train_13')
+    writer = SummaryWriter('train_16')
     
     main()
-    #plt.plot(losses)

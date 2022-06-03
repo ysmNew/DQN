@@ -243,26 +243,24 @@ class Simulator:
 # 허용되지 않은 방향에서 아이템 박스에 진입했을 경우 바깥으로 나간 것으로 판단
         if (new_x, new_y) in self.shelf:
             if action != self.shelf[(new_x, new_y)][0]:
-                print(action, '벽으로 못 들어감')
+                print('벽으로 못 들어감')
                 out_of_boundary.append(True)
 # 아이템 박스에서 허용되지 않은 방향으로 나가는 경우 바깥으로 나간 것으로 판단
         if (cur_x,cur_y) in self.shelf:
             if action != self.shelf[(cur_x,cur_y)][1]:
-                print(action, '벽으로 못 나감')
+                print('벽으로 못 나감')
                 out_of_boundary.append(True)
         
-        # 바깥으로 나가는 경우 종료 #-> 종료 대신 제자리에서 장애물 패널티만
+        # 바깥으로 나가는 경우 종료
         if any(out_of_boundary):
-            print(action, '아이쿠!')
+            print('아이쿠!')
             self.done = True
-            #self.curloc = [cur_x, cur_y]
         else:
             # 장애물에 부딪히는 경우 종료
-# 빈 아이템 박스에 접근하는 경우에도 종료 #-> 종료 대신 제자리에서 장애물 패널티만
+# 빈 아이템 박스에 접근하는 경우에도 종료
             if self.grid[new_x][new_y] in (0,2,3):
-                print(action, '아이쿠!')
+                print('아이쿠!')
                 self.done = True
-                #self.curloc = [cur_x, cur_y]
 
             # 현재 목표에 도달한 경우, 다음 목표설정
             elif self.grid[new_x][new_y] == 4:
@@ -295,7 +293,7 @@ class Simulator:
                     self.table[new_x][new_y] += 1
                     self.curloc = [new_x,new_y]
                     self.done = False
-                    print(action, '나가자!')
+                    print('나가자!')
                     
                 # 그냥 길에서 움직이는 경우 
                 else: 
@@ -304,19 +302,17 @@ class Simulator:
                     self.table[new_x][new_y] += 1
                     self.curloc = [new_x,new_y]
                     self.done = False
-                    print(action, '..')
-                
-        reward = self.get_reward(new_x, new_y, out_of_boundary)
-        self.cumulative_reward += reward
-        s_prime = self.get_state()
+                    #print('..')
 
-        #action_mask = self.mask_action(new_x,new_y)
-        action_mask = [True,True,True,True]
-        
         #print(self.grid)
         #print(self.actions)
         #print('done:', self.done)
         #print()
+                
+        reward = self.get_reward(new_x, new_y, out_of_boundary)
+        self.cumulative_reward += reward
+        s_prime = self.get_state()
+        
         #print(s_prime)
 
         if self.done == True:
@@ -348,7 +344,7 @@ class Simulator:
                     render_cls.viewer.close()
                     display.stop()
         
-        return s, action, reward, self.cumulative_reward, s_prime, self.done, goal_ob_reward, action_mask
+        return s, action, reward, self.cumulative_reward, s_prime, self.done, action_mask, goal_ob_reward
         
 # 현재의 grid와 table을 하나의 텐서로 변경해주는 함수
     def get_state(self): 
@@ -364,25 +360,6 @@ class Simulator:
         new_state = new_state.type(torch.float32)
         
         return new_state
-        
-#########################################
-# 현재 위치의 상하좌우를 확인해서 이동 불가능한 방향의 액션은 마스킹
-    def mask_action(self, cur_x, cur_y):
-        near = [(cur_x-1, cur_y),(cur_x+1, cur_y),(cur_x, cur_y-1),(cur_x, cur_y+1)]
-        action_mask = [False,False,False,False]
-        for i, (x,y) in enumerate(near):
-            #print((x,y),self.grid[x][y], end = ' ')
-            try:
-                if self.grid[x][y] not in (0,2,3): 
-                    action_mask[i] = True
-# 그리드 밖은 그대로 False
-            except: 
-                pass
-        #print()
-        #print([cur_x, cur_y], action_mask)
-        #input()
-        return action_mask
-#########################################
 
 if __name__ == "__main__":
 
@@ -402,7 +379,7 @@ if __name__ == "__main__":
         while done == False:
 
             i += 1
-            next_obs, action, reward, cumul, s_prime, done, goal_reward, x,y = sim.step(actions[i])
+            next_obs, action, reward, cumul, s_prime, done, goal_reward = sim.step(actions[i])
 
             obs = next_obs
 
